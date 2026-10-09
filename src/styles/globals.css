@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-blue: #4285F4;
+  --brand-red: #EA4335;
+  --brand-yellow: #FBBC05;
+  --brand-green: #34A853;
+  --surface-bg: #F8F9FA;
+  --surface-card: #FFFFFF;
+  --text-primary: #202124;
+  --text-secondary: #5F6368;
+  --border-subtle: #DADCE0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Google-inspired utility classes */
+@layer components {
+  .google-input {
+    @apply w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4285F4] focus:border-transparent transition-all;
+  }
+
+  .google-card {
+    @apply bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_0_rgba(60,64,67,0.08),0_1px_2px_0_rgba(60,64,67,0.04)] transition-all;
+  }
+
+  .google-card-hover {
+    @apply hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(60,64,67,0.12)] transition-all duration-200;
+  }
+
+  .pill-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
+
+/* Safe area support for Capacitor mobile */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
