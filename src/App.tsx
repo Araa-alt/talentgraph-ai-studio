@@ -18,30 +18,68 @@ import { CandidateDiscovery } from './components/recruiter/CandidateDiscovery';
 import { ShortlistManager } from './components/recruiter/ShortlistManager';
 import { CreateInternshipModal } from './components/recruiter/CreateInternshipModal';
 
+const STUDENT_VIEWS = ['dashboard', 'find-internships', 'my-profile', 'applications', 'growth'];
+const RECRUITER_VIEWS = ['recruiter-dashboard', 'candidate-discovery', 'shortlists'];
+
 const AppContent: React.FC = () => {
   const { currentRole, needsOnboarding, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<string>(
-    currentRole === 'student' ? 'dashboard' : currentRole === 'recruiter' ? 'recruiter-dashboard' : 'landing'
-  );
+
+  const getInitialView = (role: string) => {
+    if (typeof window === 'undefined') return role === 'student' ? 'dashboard' : role === 'recruiter' ? 'recruiter-dashboard' : 'landing';
+    const hash = window.location.hash.replace(/^#/, '');
+    if (role === 'student') {
+      return STUDENT_VIEWS.includes(hash) ? hash : 'dashboard';
+    }
+    if (role === 'recruiter') {
+      return RECRUITER_VIEWS.includes(hash) ? hash : 'recruiter-dashboard';
+    }
+    return 'landing';
+  };
+
+  const [currentView, setCurrentView] = useState<string>(() => getInitialView(currentRole));
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
 
   // Sync default view whenever role changes
   useEffect(() => {
     if (currentRole === 'student') {
-      setCurrentView((prev) =>
-        ['dashboard', 'find-internships', 'my-profile', 'applications', 'growth'].includes(prev)
-          ? prev
-          : 'dashboard'
-      );
+      const hash = window.location.hash.replace(/^#/, '');
+      const target = STUDENT_VIEWS.includes(hash) ? hash : 'dashboard';
+      setCurrentView(target);
+      if (window.location.hash !== `#${target}`) {
+        window.history.replaceState(null, '', `#${target}`);
+      }
     } else if (currentRole === 'recruiter') {
-      setCurrentView((prev) =>
-        ['recruiter-dashboard', 'candidate-discovery', 'shortlists'].includes(prev)
-          ? prev
-          : 'recruiter-dashboard'
-      );
+      const hash = window.location.hash.replace(/^#/, '');
+      const target = RECRUITER_VIEWS.includes(hash) ? hash : 'recruiter-dashboard';
+      setCurrentView(target);
+      if (window.location.hash !== `#${target}`) {
+        window.history.replaceState(null, '', `#${target}`);
+      }
     } else {
       setCurrentView('landing');
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     }
+  }, [currentRole]);
+
+  // Support browser back/forward buttons
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#/, '');
+      if (currentRole === 'student' && STUDENT_VIEWS.includes(hash)) {
+        setCurrentView(hash);
+      } else if (currentRole === 'recruiter' && RECRUITER_VIEWS.includes(hash)) {
+        setCurrentView(hash);
+      }
+    };
+
+    window.addEventListener('popstate', handleHashChange);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('popstate', handleHashChange);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, [currentRole]);
 
   // Handle route navigation with role authorization guard
@@ -54,14 +92,17 @@ const AppContent: React.FC = () => {
     }
 
     // Role boundary checks: do not permit student to open recruiter views or vice versa
-    if (currentRole === 'student' && ['recruiter-dashboard', 'candidate-discovery', 'shortlists'].includes(view)) {
+    if (currentRole === 'student' && RECRUITER_VIEWS.includes(view)) {
       return;
     }
-    if (currentRole === 'recruiter' && ['dashboard', 'find-internships', 'my-profile', 'applications', 'growth'].includes(view)) {
+    if (currentRole === 'recruiter' && STUDENT_VIEWS.includes(view)) {
       return;
     }
 
     setCurrentView(view);
+    if (window.location.hash !== `#${view}`) {
+      window.history.pushState(null, '', `#${view}`);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

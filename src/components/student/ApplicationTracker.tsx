@@ -9,12 +9,12 @@ import { Tabs } from '../common/Tabs';
 import { InternshipDetailsModal } from './InternshipDetailsModal';
 import {
   BookmarkCheck,
-  ExternalLink,
   MapPin,
   Clock,
   Briefcase,
   Trash2,
   Calendar,
+  CheckCircle,
 } from 'lucide-react';
 
 export const ApplicationTracker: React.FC = () => {
@@ -148,14 +148,21 @@ export const ApplicationTracker: React.FC = () => {
                     >
                       View Details
                     </Button>
-                    <a
-                      href={internship.application_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-[#1A73E8] hover:underline flex items-center gap-1 font-semibold"
-                    >
-                      Apply Externally <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    {applications.some((a) => a.internship_id === internship.id && a.status === 'applied') ? (
+                      <span className="text-xs text-[#188038] font-semibold flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" /> Applied
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={async () => {
+                          await updateApplicationStatus(internship.id, 'applied', 'Applied via Saved Opportunities');
+                        }}
+                      >
+                        Apply Now
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );

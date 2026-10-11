@@ -35,6 +35,50 @@ describe('Supabase & Auth Data Isolation', () => {
     expect(fetched).not.toBeNull();
     expect(fetched?.id).toBe(testAuthUserId);
     expect(fetched?.role).toBe('recruiter');
+    expect(fetched?.is_approved).toBe(false);
+  });
+
+  it('distinguishes pending recruiters from approved recruiters via is_approved column', async () => {
+    const approvedRecruiterId = 'approved-recruiter-uuid';
+    const pendingRecruiterId = 'pending-recruiter-uuid';
+
+    await db.createProfile({
+      id: approvedRecruiterId,
+      email: 'approved@firm.com',
+      role: 'recruiter',
+      is_approved: true,
+      full_name: 'Approved Recruiter',
+      preferred_roles: [],
+      preferred_locations: [],
+      preferred_work_modes: ['remote'],
+      skills: [],
+      projects: [],
+      hackathons: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    await db.createProfile({
+      id: pendingRecruiterId,
+      email: 'pending@firm.com',
+      role: 'recruiter',
+      is_approved: false,
+      full_name: 'Pending Recruiter',
+      preferred_roles: [],
+      preferred_locations: [],
+      preferred_work_modes: ['remote'],
+      skills: [],
+      projects: [],
+      hackathons: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    const approved = await db.getProfile(approvedRecruiterId);
+    const pending = await db.getProfile(pendingRecruiterId);
+
+    expect(approved?.is_approved).toBe(true);
+    expect(pending?.is_approved).toBe(false);
   });
 
   it('maintains application data isolation per student ID', async () => {
@@ -107,5 +151,42 @@ describe('Supabase & Auth Data Isolation', () => {
     localStorage.removeItem(DEMO_STORAGE_KEY);
     expect(sessionStorage.getItem(DEMO_STORAGE_KEY)).toBeNull();
     expect(localStorage.getItem(DEMO_STORAGE_KEY)).toBeNull();
+  });
+
+  it('records applications for the respective recruiter when a student applies', async () => {
+    const studentId = 'stud-applicant-9';
+    const recruiterId = 'rec-lead-9';
+    const otherRecruiterId = 'rec-lead-other';
+
+    // Create an internship posted by recruiterId
+    const internship = await db.createInternship({
+      recruiter_id: recruiterId,
+      title: 'Cloud Infrastructure Intern',
+      organization: 'CloudCore Systems',
+      description: 'Assist in building scalable cloud pipelines',
+      responsibilities: ['Configure CI/CD pipelines'],
+      location: 'Bangalore',
+      work_mode: 'remote',
+      duration: '6 Months',
+      stipend: '₹45,000 / month',
+      deadline: '2026-11-30',
+      application_url: 'https://cloudcore.example.com/apply',
+      status: 'active',
+      eligible_degrees: ['B.Tech'],
+      eligible_grad_years: [2026],
+      eligible_min_year: 3,
+      required_skills: [],
+      preferred_skills: [],
+    });
+
+    // Student applies directly in portal
+    await db.updateApplicationStatus(studentId, internship.id, 'applied', 'Direct portal application');
+
+    // Fetch applications visible to the posting recruiter vs other recruiter
+    const recruiterApps = await db.getRecruiterApplications(recruiterId);
+    const otherRecruiterApps = await db.getRecruiterApplications(otherRecruiterId);
+
+    expect(recruiterApps.some((a) => a.student_id === studentId && a.internship_id === internship.id)).toBe(true);
+    expect(otherRecruiterApps.some((a) => a.internship_id === internship.id)).toBe(false);
   });
 });

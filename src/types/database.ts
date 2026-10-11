@@ -68,6 +68,7 @@ export interface Profile {
   id: string;
   email: string;
   role: UserRole;
+  is_approved?: boolean;
   full_name: string;
   avatar_url?: string;
   institution?: string;
@@ -125,6 +126,7 @@ export interface Application {
   student_id: string;
   internship_id: string;
   internship?: Internship;
+  student?: Profile;
   status: ApplicationStatus;
   notes?: string;
   applied_at?: string;

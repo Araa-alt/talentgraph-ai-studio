@@ -8,8 +8,9 @@ import { MatchScoreBadge } from '../matching/MatchScoreBadge';
 import { EligibilityBadge } from '../matching/EligibilityBadge';
 import { useTalentGraph } from '../../context/TalentGraphContext';
 import {
-  ExternalLink,
   Bookmark,
+  CheckCircle,
+  Send,
 } from 'lucide-react';
 
 export interface InternshipDetailsModalProps {
@@ -30,16 +31,33 @@ export const InternshipDetailsModal: React.FC<InternshipDetailsModalProps> = ({
 
   const [notes, setNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [justApplied, setJustApplied] = useState(false);
 
   if (!internship) return null;
 
   const isSaved = savedInternshipIds.includes(internship.id);
   const existingApp = applications.find((a) => a.internship_id === internship.id);
+  const hasApplied = existingApp?.status === 'applied' || justApplied;
+
+  const handleApplyInPortal = async () => {
+    setIsUpdating(true);
+    try {
+      await updateApplicationStatus(
+        internship.id,
+        'applied',
+        notes || existingApp?.notes || 'Direct application submitted via TalentGraph student portal'
+      );
+      setJustApplied(true);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleStatusChange = async (status: ApplicationStatus) => {
     setIsUpdating(true);
     try {
       await updateApplicationStatus(internship.id, status, notes || existingApp?.notes);
+      if (status === 'applied') setJustApplied(true);
     } finally {
       setIsUpdating(false);
     }
@@ -246,14 +264,17 @@ export const InternshipDetailsModal: React.FC<InternshipDetailsModalProps> = ({
             {isSaved ? 'Saved to Bookmarks' : 'Save Opportunity'}
           </Button>
 
-          <a
-            href={internship.application_url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center font-semibold text-sm px-5 py-2.5 rounded-lg bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-sm gap-2 transition-colors ml-auto"
-          >
-            Apply on Employer Portal <ExternalLink className="w-4 h-4" />
-          </a>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant={hasApplied ? 'secondary' : 'primary'}
+              size="md"
+              onClick={handleApplyInPortal}
+              disabled={isUpdating || hasApplied}
+              icon={hasApplied ? <CheckCircle className="w-4 h-4 text-[#188038]" /> : <Send className="w-4 h-4" />}
+            >
+              {hasApplied ? 'Applied ✓' : 'Apply Now'}
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>

@@ -24,5 +24,5 @@ supabase db reset
 ### Option 2: Supabase Web Dashboard (SQL Editor)
 1. Open your project on [https://supabase.com](https://supabase.com).
 2. Go to the **SQL Editor**.
-3. Copy and run `migrations/20261009000000_initial_schema.sql`.
-4. Copy and run `seed.sql`.
+3. Copy and run `migrations/20261009010000_corrected_auth_and_rls_schema.sql`.
+4. (Optional for testing) Copy and run `seed.sql`.

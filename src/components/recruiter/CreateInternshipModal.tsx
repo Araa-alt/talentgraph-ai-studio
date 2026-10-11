@@ -17,8 +17,9 @@ export const CreateInternshipModal: React.FC<CreateInternshipModalProps> = ({
   onClose,
   existingInternship,
 }) => {
-  const { currentProfile } = useAuth();
+  const { currentProfile, isDemoMode } = useAuth();
   const { skills: catalogSkills, createInternship, updateInternship } = useTalentGraph();
+  const isPendingApproval = !isDemoMode && currentProfile?.role === 'recruiter' && currentProfile?.is_approved === false;
 
   const [title, setTitle] = useState(existingInternship?.title || '');
   const [organization, setOrganization] = useState(
@@ -79,6 +80,7 @@ export const CreateInternshipModal: React.FC<CreateInternshipModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPendingApproval) return;
     if (!title.trim() || !organization.trim() || !currentProfile) return;
 
     setIsSubmitting(true);
@@ -153,6 +155,11 @@ export const CreateInternshipModal: React.FC<CreateInternshipModalProps> = ({
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {isPendingApproval && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <strong>Approval Required:</strong> Your recruiter account is pending administrator verification. You cannot post or modify listings until approved.
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Input
             label="Role Title"
@@ -326,8 +333,14 @@ export const CreateInternshipModal: React.FC<CreateInternshipModalProps> = ({
           <Button type="button" variant="ghost" size="md" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="md" isLoading={isSubmitting}>
-            {existingInternship ? 'Update Listing' : 'Publish Internship'}
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            disabled={isPendingApproval}
+            isLoading={isSubmitting}
+          >
+            {isPendingApproval ? 'Approval Pending' : existingInternship ? 'Update Listing' : 'Publish Internship'}
           </Button>
         </div>
       </form>

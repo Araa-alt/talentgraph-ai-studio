@@ -107,7 +107,7 @@ export const db = {
         // Requirement 9: Privacy-preserving student discovery query (omitting private email and resume_url)
         const { data: profileRows, error } = await supabase
           .from('profiles')
-          .select('id, role, full_name, avatar_url, institution, degree, field_of_study, current_year, graduation_year, bio, preferred_roles, preferred_locations, preferred_work_modes, github_url, portfolio_url, created_at, updated_at')
+          .select('id, role, is_approved, full_name, avatar_url, institution, degree, field_of_study, current_year, graduation_year, bio, preferred_roles, preferred_locations, preferred_work_modes, github_url, portfolio_url, created_at, updated_at')
           .eq('role', 'student');
 
         if (!error && profileRows && profileRows.length > 0) {
@@ -280,8 +280,10 @@ export const db = {
 
   // Requirement 2: Link newly authenticated profile directly to auth.users.id
   async createProfile(profile: Profile): Promise<Profile> {
+    const isApproved = profile.role === 'recruiter' ? Boolean(profile.is_approved) : true;
     const newRecord: Profile = {
       ...profile,
+      is_approved: isApproved,
       created_at: profile.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
       skills: profile.skills || [],
@@ -295,6 +297,7 @@ export const db = {
           id: profile.id, // Strictly links to auth.users.id
           email: profile.email,
           role: profile.role,
+          is_approved: isApproved,
           full_name: profile.full_name,
           avatar_url: profile.avatar_url,
           institution: profile.institution,
@@ -972,6 +975,46 @@ export const db = {
     }
     setLocalItem(KEYS.APPLICATIONS, apps);
     return updatedApp;
+  },
+
+  async getRecruiterApplications(recruiterId: string): Promise<Application[]> {
+    const internships = await this.getInternships();
+    const profiles = await this.getProfiles();
+    const recruiterInternshipIds = internships
+      .filter((i) => i.recruiter_id === recruiterId)
+      .map((i) => i.id);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('applications')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          // If RLS is applied, Supabase already filtered for recruiter's internships.
+          // Still filter by recruiter's internship IDs to be completely consistent.
+          return data
+            .filter((a: any) => recruiterInternshipIds.length === 0 || recruiterInternshipIds.includes(a.internship_id))
+            .map((a: any) => ({
+              ...a,
+              internship: internships.find((i) => i.id === a.internship_id),
+              student: profiles.find((p) => p.id === a.student_id),
+            })) as Application[];
+        }
+      } catch (err) {
+        console.warn('Supabase getRecruiterApplications error, fallback to local', err);
+      }
+    }
+
+    const apps = getLocalItem<Application[]>(KEYS.APPLICATIONS, INITIAL_APPLICATIONS);
+    const recruiterApps = apps.filter((a) => recruiterInternshipIds.includes(a.internship_id));
+
+    return recruiterApps.map((a) => ({
+      ...a,
+      internship: internships.find((i) => i.id === a.internship_id),
+      student: profiles.find((p) => p.id === a.student_id),
+    }));
   },
 
   // --- Recruiter Shortlists (Requirement 7: Isolated per recruiter) ---

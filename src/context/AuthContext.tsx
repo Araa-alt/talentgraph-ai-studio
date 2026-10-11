@@ -250,6 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: data.user.id, // Foreign key to auth.users.id
             email: data.user.email || email,
             role,
+            is_approved: role === 'recruiter' ? false : true,
             full_name: fullName,
             preferred_roles: [],
             preferred_locations: [],
@@ -324,6 +325,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: authUser.id,
       email: authUser.email || '',
       role: assignedRole,
+      is_approved: assignedRole === 'recruiter' ? false : true,
       full_name: profileData.full_name || authUser.user_metadata?.full_name || 'Anonymous User',
       avatar_url: profileData.avatar_url,
       institution: profileData.institution,

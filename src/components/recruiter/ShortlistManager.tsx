@@ -42,6 +42,20 @@ export const ShortlistManager: React.FC = () => {
     });
   }, [shortlists, filterInternshipId]);
 
+  const isPendingApproval = !isDemoMode && currentProfile?.role === 'recruiter' && currentProfile?.is_approved === false;
+
+  if (isPendingApproval) {
+    return (
+      <Card className="text-center py-12 border-slate-200 bg-amber-50/50">
+        <BookmarkCheck className="w-10 h-10 text-amber-500 mx-auto mb-2" />
+        <h3 className="text-base font-bold text-slate-800">Recruiter Verification Pending</h3>
+        <p className="text-xs text-slate-600 max-w-md mx-auto mt-2 leading-relaxed">
+          Shortlisting and candidate management are restricted to approved recruiters. Your account is currently awaiting administrator review.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

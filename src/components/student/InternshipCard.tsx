@@ -14,8 +14,9 @@ import {
   DollarSign,
   Bookmark,
   Sparkles,
-  ExternalLink,
   ChevronRight,
+  CheckCircle,
+  Send,
 } from 'lucide-react';
 
 export interface InternshipCardProps {
@@ -29,9 +30,29 @@ export const InternshipCard: React.FC<InternshipCardProps> = ({
   match,
   onSelect,
 }) => {
-  const { savedInternshipIds, toggleSaveInternship } = useTalentGraph();
+  const { savedInternshipIds, toggleSaveInternship, applications, updateApplicationStatus } =
+    useTalentGraph();
   const [showMatchModal, setShowMatchModal] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const isSaved = savedInternshipIds.includes(internship.id);
+
+  const existingApp = applications.find((a) => a.internship_id === internship.id);
+  const hasApplied = existingApp?.status === 'applied';
+
+  const handleDirectApply = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasApplied || isApplying) return;
+    setIsApplying(true);
+    try {
+      await updateApplicationStatus(
+        internship.id,
+        'applied',
+        'Direct application submitted via TalentGraph student portal'
+      );
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   return (
     <>
@@ -139,19 +160,20 @@ export const InternshipCard: React.FC<InternshipCardProps> = ({
             size="sm"
             variant="outline"
             onClick={() => onSelect(internship)}
-            className="w-full text-xs"
+            className="flex-1 text-xs"
           >
-            Details &amp; Requirements <ChevronRight className="w-3.5 h-3.5 ml-1" />
+            Details <ChevronRight className="w-3.5 h-3.5 ml-1" />
           </Button>
-          <a
-            href={internship.application_url}
-            target="_blank"
-            rel="noreferrer"
-            className="p-2 text-slate-400 hover:text-[#4285F4] rounded-lg hover:bg-slate-50 transition-colors"
-            title="External Application"
+          <Button
+            size="sm"
+            variant={hasApplied ? 'secondary' : 'primary'}
+            onClick={handleDirectApply}
+            disabled={isApplying || hasApplied}
+            className="text-xs shrink-0"
+            icon={hasApplied ? <CheckCircle className="w-3.5 h-3.5 text-[#188038]" /> : <Send className="w-3.5 h-3.5" />}
           >
-            <ExternalLink className="w-4 h-4" />
-          </a>
+            {hasApplied ? 'Applied ✓' : 'Apply'}
+          </Button>
         </div>
       </Card>
 

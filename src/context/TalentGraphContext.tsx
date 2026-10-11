@@ -10,6 +10,7 @@ interface TalentGraphContextType {
   skills: Skill[];
   savedInternshipIds: string[];
   applications: Application[];
+  recruiterApplications: Application[];
   shortlists: RecruiterShortlist[];
   matchMap: Record<string, MatchExplanation>;
   loading: boolean;
@@ -24,11 +25,12 @@ interface TalentGraphContextType {
 const TalentGraphContext = createContext<TalentGraphContextType | undefined>(undefined);
 
 export const TalentGraphProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentProfile } = useAuth();
+  const { currentProfile, isDemoMode } = useAuth();
   const [internships, setInternships] = useState<Internship[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [savedInternshipIds, setSavedInternshipIds] = useState<string[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [recruiterApplications, setRecruiterApplications] = useState<Application[]>([]);
   const [shortlists, setShortlists] = useState<RecruiterShortlist[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,8 +52,15 @@ export const TalentGraphProvider: React.FC<{ children: React.ReactNode }> = ({ c
           setSavedInternshipIds(saved);
           setApplications(apps);
         } else if (currentProfile.role === 'recruiter') {
-          const shorts = await db.getRecruiterShortlists(currentProfile.id);
+          const effectiveRecruiterId = isDemoMode && currentProfile.id !== 'rec-marcus-1'
+            ? 'rec-marcus-1'
+            : currentProfile.id;
+          const [shorts, recApps] = await Promise.all([
+            db.getRecruiterShortlists(effectiveRecruiterId),
+            db.getRecruiterApplications(effectiveRecruiterId),
+          ]);
           setShortlists(shorts);
+          setRecruiterApplications(recApps);
         }
       }
     } catch (err) {
@@ -103,6 +112,15 @@ export const TalentGraphProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
       return [...prev, updated];
     });
+
+    try {
+      const effectiveRecruiterId = isDemoMode ? 'rec-marcus-1' : currentProfile.id;
+      const recApps = await db.getRecruiterApplications(effectiveRecruiterId);
+      setRecruiterApplications(recApps);
+    } catch (e) {
+      console.warn('Could not refresh recruiter applications immediately', e);
+    }
+
     return updated;
   };
 
@@ -139,6 +157,7 @@ export const TalentGraphProvider: React.FC<{ children: React.ReactNode }> = ({ c
         skills,
         savedInternshipIds,
         applications,
+        recruiterApplications,
         shortlists,
         matchMap,
         loading,
